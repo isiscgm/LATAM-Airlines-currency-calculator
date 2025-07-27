@@ -1,3 +1,5 @@
+from tkcalendar import DateEntry
+from datetime import datetime
 import requests
 import tkinter as tk
 from tkinter import ttk
@@ -42,16 +44,16 @@ valores_internacionais = {
 
 def calcular_valor():
     tipo = tipo_viagem.get()
-    periodo = periodo_var.get()
-    quantidade = quantidade_entry.get()
-
     try:
-        quantidade = int(quantidade)
-    except ValueError:
-        resultado_var.set("Insira um número válido.")
+        data_ini = datetime.strptime(data_inicio.get(), "%d/%m/%Y")
+        data_fi = datetime.strptime(data_fim.get(), "%d/%m/%Y")
+        if data_fi <= data_ini:
+            resultado_var.set("Data final deve ser após a inicial.")
+            return
+        total_dias = (data_fi - data_ini).days
+    except Exception as e:
+        resultado_var.set("Erro ao calcular as datas.")
         return
-
-    total_dias = quantidade if periodo == "Dias" else quantidade * 30
 
     if tipo == "Nacional":
         incluir_cafe = cafe_check.get()
@@ -64,7 +66,7 @@ def calcular_valor():
 
         resumo = (
             f"Tipo de viagem: {tipo}\n"
-            f"Período: {quantidade} {periodo.lower()} ({total_dias} dias)\n"
+            f"Período: {data_ini.strftime('%d/%m/%Y')} até {data_fi.strftime('%d/%m/%Y')} ({total_dias} dias)\n"
             f"Valor diário (alimentação): R$ {valor_diario:.2f}\n"
             f"====================\nVALORES FIXOS:\n{detalhes}\n====================\n"
             f"Total estimado: R$ {total:.2f}"
@@ -82,7 +84,7 @@ def calcular_valor():
             detalhes.append("Café da manhã: USD 10/dia")
 
         if lavanderia_check.get():
-            dias_lavagem = (total_dias // 5) + (1 if total_dias % 5 != 0 else 0)
+            dias_lavagem = (total_dias // 5)
             total += dias_lavagem * 30
             detalhes.append(f"Lavanderia: USD 30 a cada 5 dias ({dias_lavagem}x)")
 
@@ -117,7 +119,7 @@ def calcular_valor():
         resumo = (
             f"Tipo de viagem: {tipo}\n"
             f"País: {pais}\n"
-            f"Período: {quantidade} {periodo.lower()} ({total_dias} dias)\n"
+            f"Período: {data_ini.strftime('%d/%m/%Y')} até {data_fi.strftime('%d/%m/%Y')} ({total_dias} dias)\n"
             f"====================\n" +
             "\n".join(detalhes) +
             f"\n====================\nTotal estimado: USD {total:.2f}"
@@ -170,16 +172,15 @@ tipo_viagem.pack()
 tipo_viagem.current(0)
 tipo_viagem.bind("<<ComboboxSelected>>", alternar_opcoes)
 
-# Período
-tk.Label(root, text="Escolha o período:").pack()
-periodo_var = ttk.Combobox(root, values=["Dias", "Meses"], state="readonly")
-periodo_var.pack()
-periodo_var.current(0)
+# Data de ida
+tk.Label(root, text="Data de Início:").pack()
+data_inicio = DateEntry(root, date_pattern='dd/mm/yyyy')
+data_inicio.pack()
 
-# Quantidade
-tk.Label(root, text="Quantidade:").pack()
-quantidade_entry = tk.Entry(root)
-quantidade_entry.pack()
+# Data de volta
+tk.Label(root, text="Data de Fim:").pack()
+data_fim = DateEntry(root, date_pattern='dd/mm/yyyy')
+data_fim.pack()
 
 # Container para opções e botão calcular
 frame_opcoes = tk.Frame(root)
