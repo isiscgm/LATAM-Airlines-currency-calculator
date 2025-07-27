@@ -1,11 +1,19 @@
 import requests
 import tkinter as tk
 from tkinter import ttk
+import sys
+import os
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 def obter_cotacao_dolar():
     api_key = "fca_live_IVciBYaGzJLOC8OrfLbwoxUbcXzdCIn8PPYyOaCZ"  
     url = f"https://api.freecurrencyapi.com/v1/latest?apikey={api_key}&currencies=BRL&base_currency=USD"
-    
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -15,15 +23,12 @@ def obter_cotacao_dolar():
     except Exception as e:
         print("Erro ao obter cotação do dólar:", e)
         return None
-    
-#debbuger
-print("Cotação atual do dólar:", obter_cotacao_dolar())
 
-# ===== Nacional =====
+# Valores fixos nacionais
 VALOR_ALMOCO = 77.63
 VALOR_JANTA = 77.63
 
-# ===== Internacional =====
+# Valores fixos internacionais (USD)
 valores_internacionais = {
     "Argentina": 30, "Bolívia": 30, "Chile": 40, "Colômbia": 30, "Equador": 30,
     "Paraguai": 30, "Peru": 30, "Uruguai": 30, "Venezuela": 30, "Outros da América do Sul": 30,
@@ -46,20 +51,15 @@ def calcular_valor():
         resultado_var.set("Insira um número válido.")
         return
 
-    if periodo == "Dias":
-        total_dias = quantidade
-    else:
-        total_dias = quantidade * 30
+    total_dias = quantidade if periodo == "Dias" else quantidade * 30
 
     if tipo == "Nacional":
         incluir_cafe = cafe_check.get()
         valor_diario = VALOR_ALMOCO + VALOR_JANTA
         detalhes = f"almoço = R$ {VALOR_ALMOCO:.2f}\njanta = R$ {VALOR_JANTA:.2f}"
-
         if incluir_cafe:
             valor_diario += 19.40
             detalhes += "\ncafé = R$ 19.40"
-
         total = valor_diario * total_dias
 
         resumo = (
@@ -71,13 +71,12 @@ def calcular_valor():
         )
         resultado_var.set(resumo)
 
-    elif tipo == "Internacional":
+    else:  # Internacional
         pais = pais_combo.get()
         valor_base = valores_internacionais.get(pais, 0)
         total = valor_base * total_dias
         detalhes = [f"Diária para {pais}: USD {valor_base:.2f}"]
 
-        # Extras
         if cafe_check_internacional.get():
             total += 10 * total_dias
             detalhes.append("Café da manhã: USD 10/dia")
@@ -91,10 +90,8 @@ def calcular_valor():
             total += 10 * total_dias
             detalhes.append("Telefonia: USD 10/dia")
 
-        # Aluguel de carro SEPARADO
         valor_aluguel = 0
         aluguel_detalhe = ""
-
         if pais == "EUA" and aluguel_carro_check.get():
             tipo_aluguel = tipo_aluguel_combo.get()
             if tipo_aluguel == "MIA":
@@ -109,7 +106,7 @@ def calcular_valor():
 
         total_geral = total + valor_aluguel
 
-        # Conversão para BRL
+        # Conversão para reais
         cotacao = obter_cotacao_dolar()
         if cotacao:
             valor_em_reais = total_geral * cotacao
@@ -160,8 +157,9 @@ root = tk.Tk()
 root.title("Calculadora de Viagem LATAM")
 root.geometry("500x600")
 
-# Logo - imagem PNG na mesma pasta
-logo_img = tk.PhotoImage(file="Latam-logo_.png")
+# Logo
+logo_path = resource_path("Latam-logo_.png")
+logo_img = tk.PhotoImage(file=logo_path)
 logo_label = tk.Label(root, image=logo_img)
 logo_label.pack(pady=10)
 
@@ -214,12 +212,11 @@ tk.Checkbutton(frame_internacional, text="Incluir Telefonia (USD 10/dia)", varia
 aluguel_carro_check = tk.BooleanVar()
 tk.Checkbutton(frame_internacional, text="Incluir Aluguel de Carro (EUA)", variable=aluguel_carro_check, command=alternar_tipo_aluguel).pack(anchor="w")
 
-# Label e combobox do tipo de aluguel (escondidos inicialmente)
 tipo_aluguel_label = tk.Label(frame_internacional, text="Tipo de Aluguel de Carro (se EUA):")
 tipo_aluguel_combo = ttk.Combobox(frame_internacional, values=["MIA", "NYC", "LAX", "OUTROS"], state="readonly")
 tipo_aluguel_combo.set("MIA")
 
-# Botão calcular (sempre visível, abaixo dos frames)
+# Botão calcular
 btn_calcular = tk.Button(frame_opcoes, text="Calcular", command=calcular_valor)
 btn_calcular.pack(pady=10)
 
@@ -227,14 +224,12 @@ btn_calcular.pack(pady=10)
 resultado_var = tk.StringVar()
 tk.Label(root, textvariable=resultado_var, justify="left", font=("Arial", 10)).pack(pady=10)
 
-# Inicializa exibindo apenas o grupo nacional
-alternar_opcoes()
-
-# Inicializa estado do dropdown de aluguel escondido
-alternar_tipo_aluguel()
-
 # Rodapé
 rodape = tk.Label(root, text="by: Isis Cagliumi", font=("Arial", 8), fg="gray")
 rodape.pack(side="bottom", pady=10)
+
+# Inicializações
+alternar_opcoes()
+alternar_tipo_aluguel()
 
 root.mainloop()
