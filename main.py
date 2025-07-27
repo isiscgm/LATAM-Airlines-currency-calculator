@@ -160,6 +160,11 @@ root = tk.Tk()
 root.title("Calculadora de Viagem LATAM")
 root.geometry("500x600")
 
+# Logo - imagem PNG na mesma pasta
+logo_img = tk.PhotoImage(file="Latam-logo_.png")
+logo_label = tk.Label(root, image=logo_img)
+logo_label.pack(pady=10)
+
 # Tipo de viagem
 tk.Label(root, text="Tipo de Viagem:").pack()
 tipo_viagem = ttk.Combobox(root, values=["Nacional", "Internacional"], state="readonly")
@@ -227,5 +232,9 @@ alternar_opcoes()
 
 # Inicializa estado do dropdown de aluguel escondido
 alternar_tipo_aluguel()
+
+# Rodapé
+rodape = tk.Label(root, text="by: Isis Cagliumi", font=("Arial", 8), fg="gray")
+rodape.pack(side="bottom", pady=10)
 
 root.mainloop()
