@@ -1,5 +1,23 @@
+import requests
 import tkinter as tk
 from tkinter import ttk
+
+def obter_cotacao_dolar():
+    api_key = "fca_live_IVciBYaGzJLOC8OrfLbwoxUbcXzdCIn8PPYyOaCZ"  
+    url = f"https://api.freecurrencyapi.com/v1/latest?apikey={api_key}&currencies=BRL&base_currency=USD"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        cotacao = data["data"]["BRL"]
+        return cotacao
+    except Exception as e:
+        print("Erro ao obter cotação do dólar:", e)
+        return None
+    
+#debbuger
+print("Cotação atual do dólar:", obter_cotacao_dolar())
 
 # ===== Nacional =====
 VALOR_ALMOCO = 77.63
@@ -57,7 +75,7 @@ def calcular_valor():
         pais = pais_combo.get()
         valor_base = valores_internacionais.get(pais, 0)
         total = valor_base * total_dias
-        detalhes = [f"Base diária para {pais}: USD {valor_base:.2f}"]
+        detalhes = [f"Diária para {pais}: USD {valor_base:.2f}"]
 
         # Extras
         if cafe_check_internacional.get():
@@ -73,17 +91,31 @@ def calcular_valor():
             total += 10 * total_dias
             detalhes.append("Telefonia: USD 10/dia")
 
+        # Aluguel de carro SEPARADO
+        valor_aluguel = 0
+        aluguel_detalhe = ""
+
         if pais == "EUA" and aluguel_carro_check.get():
             tipo_aluguel = tipo_aluguel_combo.get()
             if tipo_aluguel == "MIA":
-                total += 100 * total_dias
-                detalhes.append("Aluguel de carro (MIA): USD 100/dia")
+                valor_aluguel = 100 * total_dias
+                aluguel_detalhe = "Aluguel de carro (MIA): USD 100/dia"
             elif tipo_aluguel in ["NYC", "LAX"]:
-                total += 130 * total_dias
-                detalhes.append("Aluguel de carro (NYC/LAX): USD 130/dia")
+                valor_aluguel = 130 * total_dias
+                aluguel_detalhe = "Aluguel de carro (NYC/LAX): USD 130/dia"
             else:
-                total += 80 * total_dias
-                detalhes.append("Aluguel de carro (OUTROS): USD 80/dia")
+                valor_aluguel = 80 * total_dias
+                aluguel_detalhe = "Aluguel de carro (OUTROS): USD 80/dia"
+
+        total_geral = total + valor_aluguel
+
+        # Conversão para BRL
+        cotacao = obter_cotacao_dolar()
+        if cotacao:
+            valor_em_reais = total_geral * cotacao
+            conversao_texto = f"\nConversão estimada em reais (USD 1 = R$ {cotacao:.2f}):\nR$ {valor_em_reais:.2f}"
+        else:
+            conversao_texto = "\nConversão indisponível no momento."
 
         resumo = (
             f"Tipo de viagem: {tipo}\n"
@@ -93,6 +125,17 @@ def calcular_valor():
             "\n".join(detalhes) +
             f"\n====================\nTotal estimado: USD {total:.2f}"
         )
+
+        if valor_aluguel > 0:
+            resumo += (
+                f"\n\n===== Aluguel de Carro =====\n"
+                f"{aluguel_detalhe}\n"
+                f"Valor: USD {valor_aluguel:.2f}"
+                f"\n============================"
+            )
+
+        resumo += conversao_texto
+
         resultado_var.set(resumo)
 
 def alternar_opcoes(*args):
